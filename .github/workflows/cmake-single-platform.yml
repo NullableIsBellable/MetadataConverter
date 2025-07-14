@@ -1,4 +1,4 @@
-name: Cross-Compile to AArch64 (Static)
+name: Cross-Compile for Android AArch64 (Bionic-compatible)
 
 on:
   push:
@@ -17,27 +17,28 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install AArch64 cross-compiler
-      run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+    - name: Set up Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r26d # you can choose another version if needed
+        add-to-path: true
 
-    - name: Configure CMake for AArch64 (static linking)
+    - name: Configure CMake with Android NDK
       run: >
-        cmake -B ${{ github.workspace }}/build
+        cmake -B build
         -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-        -DCMAKE_SYSTEM_NAME=Linux
-        -DCMAKE_SYSTEM_PROCESSOR=aarch64
-        -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
-        -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
-        -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"
+        -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake
+        -DANDROID_ABI=arm64-v8a
+        -DANDROID_PLATFORM=android-24
 
-    - name: Build the project
-      run: cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }}
+    - name: Build
+      run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
-    - name: Check binary architecture
-      run: file ${{ github.workspace }}/build/metadata
+    - name: Check binary
+      run: file build/metadata
 
-    - name: Upload statically linked AArch64 binary
+    - name: Upload Android AArch64 Binary
       uses: actions/upload-artifact@v4
       with:
-        name: metadata-aarch64-static
-        path: ${{ github.workspace }}/build/metadata
+        name: metadata-android-arm64
+        path: build/metadata
